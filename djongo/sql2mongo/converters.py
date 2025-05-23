@@ -282,7 +282,7 @@ class OrderConverter(Converter):
         super().__init__(*args)
 
     def parse(self):
-        tok = self.statement.next()
+        # tok = self.statement.next()
         # if not tok.match(tokens.Keyword, 'BY'):
         #     raise SQLDecodeError
 
