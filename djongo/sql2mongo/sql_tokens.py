@@ -109,6 +109,25 @@ class SQLIdentifier(AliasableToken):
             self._ord = self._token.get_ordering()
             self._token = self._token[0]
 
+        # Django 5.2+ generates positional ORDER BY references (e.g. ORDER BY 1 ASC)
+        # when the ORDER BY column is already in the SELECT list. Resolve the integer
+        # position back to the actual column identifier.
+        if self._token.ttype == tokens.Number.Integer:
+            self._token = self._resolve_positional_ref(int(self._token.value))
+
+    def _resolve_positional_ref(self, position):
+        query = self.query
+        sql_tokens = None
+        if hasattr(query, 'distinct') and query.distinct is not None:
+            sql_tokens = query.distinct.sql_tokens
+        if not sql_tokens and hasattr(query, 'selected_columns') and query.selected_columns is not None:
+            sql_tokens = query.selected_columns.sql_tokens
+        if sql_tokens and 0 < position <= len(sql_tokens):
+            resolved = sql_tokens[position - 1]
+            if isinstance(resolved, SQLIdentifier):
+                return resolved._token
+        raise SQLDecodeError(f'Cannot resolve positional ORDER BY reference: {position}')
+
     @property
     def order(self):
         if self._ord is None:

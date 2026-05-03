@@ -204,6 +204,46 @@ class iLikeOp(LikeOp):
         }}
 
 
+class CmpLikeOp(_Op):
+    """Handles LIKE/iLIKE when sqlparse parses them as Comparison tokens."""
+
+    def __init__(self, token, query, case_insensitive=False):
+        self.query = query
+        self.params = query.params
+        self.statement = token
+        self.lhs = None
+        self.rhs = None
+        self.is_negated = False
+        self.precedence = OPERATOR_PRECEDENCE.get('LIKE', OPERATOR_PRECEDENCE['generic'])
+        self._case_insensitive = case_insensitive
+        self._field = SQLToken.token2sql(token.left, query).field
+        self._regex = None
+        self._make_regex(token.right)
+
+    def _make_regex(self, token):
+        index = SQLToken.placeholder_index(token)
+        to_match = self.params[index]
+        if isinstance(to_match, str):
+            to_match = to_match.replace('%', '.*')
+            self._regex = '^' + to_match + '$'
+        else:
+            raise SQLDecodeError
+
+    def negate(self):
+        self.is_negated = True
+
+    def evaluate(self):
+        pass
+
+    def to_mongo(self):
+        result = {'$regex': self._regex}
+        if self._case_insensitive:
+            result['$options'] = 'im'
+        if self.is_negated:
+            return {self._field: {'$not': result}}
+        return {self._field: result}
+
+
 class IsOp(_BinaryOp):
 
     def __init__(self, *args, **kwargs):
@@ -415,7 +455,13 @@ class _StatementParser:
             if isinstance(tok.tokens[0], Function):
                 op = FuncOp(tok, self.query)
             else:
-                op = CmpOp(tok, self.query)
+                cmp_op_tok = tok.token_next(0)[1]
+                if cmp_op_tok.value == 'iLIKE':
+                    op = CmpLikeOp(tok, self.query, case_insensitive=True)
+                elif cmp_op_tok.value == 'LIKE':
+                    op = CmpLikeOp(tok, self.query, case_insensitive=False)
+                else:
+                    op = CmpOp(tok, self.query)
 
         elif isinstance(tok, Parenthesis):
             if (tok[1].match(tokens.Name.Placeholder, '.*', regex=True)
