@@ -113,45 +113,25 @@ class DatabaseOperations(BaseDatabaseOperations):
             for row in placeholder_rows
         )
 
-    def date_extract_sql(self, lookup_type, field_name):
-        """
-        Given a lookup_type of 'year', 'month', or 'day', return the SQL that
-        extracts a value from the given date field field_name.
-        """
-        if lookup_type == 'year':
-            pass
-        elif lookup_type == 'month':
-            pass
-        elif lookup_type == 'day':
-            pass
-        else:
+    def date_extract_sql(self, lookup_type, sql, params):
+        if lookup_type not in ('year', 'month', 'day'):
             raise ValueError("Djongo backend only support 'year', 'month' and 'day' Date Functions.")
-        return "%s(%s)" % (lookup_type.upper(), field_name)  # ex: MONTH(field)
+        return "%s(%s)" % (lookup_type.upper(), sql), params
 
-    def datetime_extract_sql(self, lookup_type, field_name, tzname):
-        """
-        Given a lookup_type of 'year', 'month', or 'day', return the SQL that
-        extracts a value from the given date field field_name.
-        """
-        if lookup_type == 'year':
-            pass
-        elif lookup_type == 'month':
-            pass
-        elif lookup_type == 'day':
-            pass
-        elif lookup_type == 'hour':
-            pass
-        elif lookup_type == 'minute':
-            pass
-        elif lookup_type == 'second':
-            pass
-        else:
+    def datetime_extract_sql(self, lookup_type, sql, params, tzname):
+        if lookup_type not in ('year', 'month', 'day', 'hour', 'minute', 'second'):
             raise ValueError(
                 "Djongo backend only support 'year', 'month', 'day', 'hour', 'minute' and 'second' DateTime Functions.")
-        return "%s(%s)" % (lookup_type.upper(), field_name)  # ex: MONTH(field)
+        return "%s(%s)" % (lookup_type.upper(), sql), params
 
-    def date_trunc_sql(self, lookup_type, field_name):
-        return "DATE_TRUNC(%s, %s)" % (lookup_type.upper(), field_name)
+    def date_trunc_sql(self, lookup_type, sql, params, tzname=None):
+        return "DATE_TRUNC(%s, %s)" % (lookup_type.upper(), sql), params
 
-    def datetime_trunc_sql(self, lookup_type, field_name, tzname):
-        return "DATE_TRUNC(%s, %s)" % (lookup_type.upper(), field_name)
+    def datetime_trunc_sql(self, lookup_type, sql, params, tzname):
+        return "DATE_TRUNC(%s, %s)" % (lookup_type.upper(), sql), params
+
+    def time_trunc_sql(self, lookup_type, sql, params, tzname=None):
+        return "TIME_TRUNC(%s, %s)" % (lookup_type.upper(), sql), params
+
+    def time_extract_sql(self, lookup_type, sql, params):
+        return "%s(%s)" % (lookup_type.upper(), sql), params
